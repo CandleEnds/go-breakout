@@ -9,7 +9,6 @@ import (
 	"image"
 	"image/png"
 	"os"
-	//"unsafe"
 )
 
 const (
@@ -36,7 +35,6 @@ const (
   void main()
   {
     gl_FragColor = texture2D(Sampler, TextureCoordOut);
-    //gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
   }
   `
 )
@@ -116,6 +114,9 @@ func MakeRenderComponent(vao gl.VertexArray,
 
 func (r RenderComponent) Draw(pos mgl.Vec2) {
 	// global shader
+	gl.Enable(gl.BLEND)
+	defer gl.Disable(gl.BLEND)
+
 	r.program.Use()
 	defer r.program.Unuse()
 
@@ -139,9 +140,7 @@ func (r RenderComponent) Draw(pos mgl.Vec2) {
 	defer r.positionAttrib.DisableArray()
 
 	//offset by x,y,z floats
-	//var texCoordOffset float32 = 3 * 4
-	off := uintptr(3 * 4)
-	r.texCoordAttrib.AttribPointer(2, gl.FLOAT, false, 5*4, off)
+	r.texCoordAttrib.AttribPointer(2, gl.FLOAT, false, 5*4, uintptr(3*4))
 	r.texCoordAttrib.EnableArray()
 	defer r.texCoordAttrib.DisableArray()
 
@@ -156,7 +155,8 @@ func InitGL() {
 	fmt.Println("OpenGL version", version)
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LESS)
-	gl.ClearColor(0.0, 0.0, 0.0, 1.0)
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+	gl.ClearColor(0.2, 0.2, 0.2, 1.0)
 }
 
 func ClearScreen() {
