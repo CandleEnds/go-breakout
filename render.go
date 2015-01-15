@@ -8,7 +8,8 @@ import (
 	mgl "github.com/go-gl/mathgl/mgl32"
 	"image"
 	"image/png"
-	"io"
+	"os"
+	//"unsafe"
 )
 
 const (
@@ -55,16 +56,30 @@ func VertexifyRect(r Rect) []float32 {
 	lY := float32(0)
 	hY := r.size[1]
 	return []float32{
-		lX, lY, 0, hX, lY, 0, lX, hY, 0,
-		hX, lY, 0, hX, hY, 0, lX, hY, 0,
+		lX, lY, 0,
+		0, 0,
+		hX, lY, 0,
+		1, 0,
+		lX, hY, 0,
+		0, 1,
+		hX, lY, 0,
+		1, 0,
+		hX, hY, 0,
+		1, 1,
+		lX, hY, 0,
+		0, 1,
 	}
 }
 
-func MakeRenderRect(r Rect) *RenderComponent {
+func MakeRenderRect(r Rect, texImg string) *RenderComponent {
 	vertices := VertexifyRect(r)
 	vao, vbo := makeVertexArrayObject(vertices)
 	program := GetDefaultShaderProgram()
-	comp := MakeRenderComponent(vao, vbo, program)
+	tex, err := createTexture(texImg)
+	if err != nil {
+		panic(err)
+	}
+	comp := MakeRenderComponent(vao, vbo, tex, program)
 	return &comp
 }
 
@@ -80,22 +95,36 @@ func GetDefaultShaderProgram() *gl.Program {
 type RenderComponent struct {
 	vao            gl.VertexArray
 	vbo            gl.Buffer
-	tex            gl.Texture
 	program        *gl.Program
 	positionAttrib gl.AttribLocation
 	uTransformLoc  gl.UniformLocation
+	tex            gl.Texture
+	uSamplerLoc    gl.UniformLocation
+	texCoordAttrib gl.AttribLocation
 }
 
-func MakeRenderComponent(vao gl.VertexArray, vbo gl.Buffer, program *gl.Program) RenderComponent {
+func MakeRenderComponent(vao gl.VertexArray,
+	vbo gl.Buffer, tex gl.Texture,
+	program *gl.Program) RenderComponent {
 	positionAttrib := program.GetAttribLocation("position")
 	uTransformLoc := program.GetUniformLocation("transform")
-	return RenderComponent{vao, vbo, program, positionAttrib, uTransformLoc}
+	texCoordAttrib := program.GetAttribLocation("texCoord")
+	samplerLoc := program.GetUniformLocation("Sampler")
+	return RenderComponent{vao, vbo, program, positionAttrib,
+		uTransformLoc, tex, samplerLoc, texCoordAttrib}
 }
 
 func (r RenderComponent) Draw(pos mgl.Vec2) {
 	// global shader
 	r.program.Use()
 	defer r.program.Unuse()
+
+	r.uTransformLoc.Uniform2fv(1, []float32{pos[0], pos[1]})
+	r.uSamplerLoc.Uniform1i(0)
+
+	gl.ActiveTexture(gl.TEXTURE0)
+	r.tex.Bind(gl.TEXTURE_2D)
+	defer r.tex.Unbind(gl.TEXTURE_2D)
 
 	// Setup array buffer stuffer
 	r.vao.Bind()
@@ -104,11 +133,17 @@ func (r RenderComponent) Draw(pos mgl.Vec2) {
 	r.vbo.Bind(gl.ARRAY_BUFFER)
 	defer r.vbo.Unbind(gl.ARRAY_BUFFER)
 
-	r.positionAttrib.AttribPointer(3, gl.FLOAT, false, 0, nil)
+	//5*4 == 5 floats per vert (x,y,z,u,v) by 4 bytes per float
+	r.positionAttrib.AttribPointer(3, gl.FLOAT, false, 5*4, nil)
 	r.positionAttrib.EnableArray()
 	defer r.positionAttrib.DisableArray()
 
-	r.uTransformLoc.Uniform2fv(1, []float32{pos[0], pos[1]})
+	//offset by x,y,z floats
+	//var texCoordOffset float32 = 3 * 4
+	off := uintptr(3 * 4)
+	r.texCoordAttrib.AttribPointer(2, gl.FLOAT, false, 5*4, off)
+	r.texCoordAttrib.EnableArray()
+	defer r.texCoordAttrib.DisableArray()
 
 	// Actual draw call
 	gl.DrawArrays(gl.TRIANGLES, 0, 6)
@@ -119,6 +154,8 @@ func InitGL() {
 	gl.Init()
 	version := gl.GetString(gl.VERSION)
 	fmt.Println("OpenGL version", version)
+	gl.Enable(gl.DEPTH_TEST)
+	gl.DepthFunc(gl.LESS)
 	gl.ClearColor(0.0, 0.0, 0.0, 1.0)
 }
 
@@ -181,7 +218,13 @@ func makeVertexArrayObject(vertices []float32) (gl.VertexArray, gl.Buffer) {
 	return vao, vbo
 }
 
-func createTexture(r io.Reader) (gl.Texture, error) {
+func createTexture(texFile string) (gl.Texture, error) {
+	r, err := os.Open(texFile)
+	if err != nil {
+		panic(err)
+	}
+	defer r.Close()
+
 	img, err := png.Decode(r)
 	if err != nil {
 		return gl.Texture(0), err

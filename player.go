@@ -51,7 +51,7 @@ func MakePaddle(width float32) *Paddle {
 		width = 1
 	}
 	rect := NewRect(width, 0.07)
-	renderComp := MakeRenderRect(rect)
+	renderComp := MakeRenderRect(rect, "./paddle.png")
 	pos := mgl.Vec2{-width / 2.0, -.95}
 	speed := 1 * TimePerUpdate.Seconds()
 	return &Paddle{renderComp, PaddleHandleKey, pos, float32(speed), 0, width}
