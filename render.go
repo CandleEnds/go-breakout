@@ -14,16 +14,19 @@ import (
 const (
 	VertexShaderSource = `#version 120
   
-  attribute vec2 position;
+  attribute vec3 position;
   attribute vec2 texCoord;
 
-  uniform vec2 transform;
+  uniform vec2 offset;
+  uniform mat4 VP;
 
   varying vec2 TextureCoordOut;
 
   void main()
   {
-    gl_Position = vec4(position+transform, 0.0, 1.0);
+    vec4 vCoord4 = vec4(position, 1.0);
+    vec4 vOffset4 = vec4(offset, 0.0, 0.0);
+    gl_Position = VP * (vCoord4 + vOffset4);
     TextureCoordOut = texCoord;
   }`
 
@@ -39,38 +42,29 @@ const (
   `
 )
 
-type Rect struct {
-	size mgl.Vec2
-	pos  mgl.Vec2 //not needed any more
-}
-
-func NewRect(sizeX, sizeY float32) Rect {
-	return Rect{size: mgl.Vec2{sizeX, sizeY}}
-}
-
-func VertexifyRect(r Rect) []float32 {
+func VertexifyRect(r mgl.Vec2, depth float32) []float32 {
 	lX := float32(0)
-	hX := r.size[0]
+	hX := r[0]
 	lY := float32(0)
-	hY := r.size[1]
+	hY := r[1]
 	return []float32{
-		lX, lY, 0,
+		lX, lY, depth,
 		0, 0,
-		hX, lY, 0,
+		hX, lY, depth,
 		1, 0,
-		lX, hY, 0,
+		lX, hY, depth,
 		0, 1,
-		hX, lY, 0,
+		hX, lY, depth,
 		1, 0,
-		hX, hY, 0,
+		hX, hY, depth,
 		1, 1,
-		lX, hY, 0,
+		lX, hY, depth,
 		0, 1,
 	}
 }
 
-func MakeRenderRect(r Rect, texImg string) *RenderComponent {
-	vertices := VertexifyRect(r)
+func MakeRenderRect(r mgl.Vec2, depth float32, texImg string) *RenderComponent {
+	vertices := VertexifyRect(r, depth)
 	vao, vbo := makeVertexArrayObject(vertices)
 	program := GetDefaultShaderProgram()
 	tex, err := createTexture(texImg)
@@ -95,7 +89,8 @@ type RenderComponent struct {
 	vbo            gl.Buffer
 	program        *gl.Program
 	positionAttrib gl.AttribLocation
-	uTransformLoc  gl.UniformLocation
+	uOffsetLoc     gl.UniformLocation
+	uProjLoc       gl.UniformLocation
 	tex            gl.Texture
 	uSamplerLoc    gl.UniformLocation
 	texCoordAttrib gl.AttribLocation
@@ -105,14 +100,15 @@ func MakeRenderComponent(vao gl.VertexArray,
 	vbo gl.Buffer, tex gl.Texture,
 	program *gl.Program) RenderComponent {
 	positionAttrib := program.GetAttribLocation("position")
-	uTransformLoc := program.GetUniformLocation("transform")
+	uOffsetLoc := program.GetUniformLocation("offset")
+	uProjLoc := program.GetUniformLocation("VP")
 	texCoordAttrib := program.GetAttribLocation("texCoord")
 	samplerLoc := program.GetUniformLocation("Sampler")
 	return RenderComponent{vao, vbo, program, positionAttrib,
-		uTransformLoc, tex, samplerLoc, texCoordAttrib}
+		uOffsetLoc, uProjLoc, tex, samplerLoc, texCoordAttrib}
 }
 
-func (r RenderComponent) Draw(pos mgl.Vec2) {
+func (r RenderComponent) Draw(pos mgl.Vec2, VP mgl.Mat4) {
 	// global shader
 	gl.Enable(gl.BLEND)
 	defer gl.Disable(gl.BLEND)
@@ -120,8 +116,10 @@ func (r RenderComponent) Draw(pos mgl.Vec2) {
 	r.program.Use()
 	defer r.program.Unuse()
 
-	r.uTransformLoc.Uniform2fv(1, []float32{pos[0], pos[1]})
+	r.uOffsetLoc.Uniform2fv(1, []float32{pos[0], pos[1]})
 	r.uSamplerLoc.Uniform1i(0)
+	vpp := [16]float32(VP)
+	r.uProjLoc.UniformMatrix4f(false, &vpp)
 
 	gl.ActiveTexture(gl.TEXTURE0)
 	r.tex.Bind(gl.TEXTURE_2D)
@@ -154,7 +152,7 @@ func InitGL() {
 	version := gl.GetString(gl.VERSION)
 	fmt.Println("OpenGL version", version)
 	gl.Enable(gl.DEPTH_TEST)
-	gl.DepthFunc(gl.LESS)
+	gl.DepthFunc(gl.LEQUAL)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	gl.ClearColor(0.2, 0.2, 0.2, 1.0)
 }

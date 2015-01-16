@@ -6,20 +6,13 @@ import (
 	mgl "github.com/go-gl/mathgl/mgl32"
 )
 
-type Player interface {
-	Draw()
-	GetController() KeyHandleFunc
-	GetPos() mgl.Vec2
-	Update()
-}
-
-type KeyHandleFunc func(*Paddle, glfw.Key, int, glfw.Action, glfw.ModifierKey)
+type KeyHandleFunc func(*Paddle, glfw.Key, int, glfw.Action, glfw.ModifierKey) bool
 
 func PaddleHandleKey(paddle *Paddle,
 	key glfw.Key,
 	scancode int,
 	action glfw.Action,
-	mods glfw.ModifierKey) {
+	mods glfw.ModifierKey) bool {
 	//direction of key movement, 1 is press, -1 is release
 	var d int
 	if action == glfw.Press {
@@ -27,14 +20,18 @@ func PaddleHandleKey(paddle *Paddle,
 	} else if action == glfw.Release {
 		d = -1
 	} else {
-		return
+		return false
 	}
 
 	if key == glfw.KeyLeft {
 		paddle.Move(-d)
 	} else if key == glfw.KeyRight {
 		paddle.Move(d)
+	} else {
+		return false
 	}
+
+	return true
 }
 
 type Paddle struct {
@@ -43,22 +40,19 @@ type Paddle struct {
 	pos        mgl.Vec2
 	speed      float32
 	velocity   int
-	width      float32
+	size       mgl.Vec2
 }
 
-func MakePaddle(width float32) *Paddle {
-	if width > 1 {
-		width = 1
-	}
-	rect := NewRect(width, 0.07)
-	renderComp := MakeRenderRect(rect, "./paddle.png")
-	pos := mgl.Vec2{-width / 2.0, -.95}
+func MakePaddle(width float32, sceneSize mgl.Vec2) *Paddle {
+	size := mgl.Vec2{width, 0.07}
+	renderComp := MakeRenderRect(size, 1, "./greenblock.png")
+	pos := mgl.Vec2{(sceneSize[0] - width) / 2, 0.05 * sceneSize[1]}
 	speed := 1 * TimePerUpdate.Seconds()
-	return &Paddle{renderComp, PaddleHandleKey, pos, float32(speed), 0, width}
+	return &Paddle{renderComp, PaddleHandleKey, pos, float32(speed), 0, size}
 }
 
-func (p *Paddle) Draw() {
-	p.renderer.Draw(p.pos)
+func (p *Paddle) Draw(VP mgl.Mat4) {
+	p.renderer.Draw(p.pos, VP)
 }
 
 func (p *Paddle) GetController() KeyHandleFunc {
@@ -69,12 +63,16 @@ func (p *Paddle) GetPos() mgl.Vec2 {
 	return p.pos
 }
 
-func (p *Paddle) Update() {
+func (p *Paddle) GetSize() mgl.Vec2 {
+	return p.size
+}
+
+func (p *Paddle) Update(stageSize mgl.Vec2) {
 	p.pos[0] += p.speed * float32(p.velocity)
-	if p.pos[0]+p.width > 1 {
-		p.pos[0] = 1 - p.width
-	} else if p.pos[0] < -1 {
-		p.pos[0] = -1
+	if p.pos[0]+p.size[0] > stageSize[0] {
+		p.pos[0] = stageSize[0] - p.size[0]
+	} else if p.pos[0] < 0 {
+		p.pos[0] = 0
 	}
 }
 
