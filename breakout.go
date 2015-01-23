@@ -53,13 +53,13 @@ func PopulateBlocks(sceneSize mgl.Vec2) {
 	horizBlocks := 8
 	vertBlocks := 4
 
-	// Amount of space taken up by whole blockfield
-	horizSpace := float32(.7)
-	vertSpace := float32(.3)
-
 	// Padding around blockfield
-	var vertStart float32 = .6 * sceneSize[1]
-	var horizStart float32 = .15 * sceneSize[0]
+	var vertStart float32 = .55 * sceneSize[1]
+	var horizStart float32 = .1 * sceneSize[0]
+
+	// Amount of space taken up by whole blockfield
+	horizSpace := float32(.8)
+	vertSpace := float32(.3)
 
 	blockWidth := sceneSize[0] * horizSpace / float32(horizBlocks)
 	blockHeight := sceneSize[1] * vertSpace / float32(vertBlocks)
@@ -115,7 +115,7 @@ func main() {
 	stageSize := mgl.Vec2{width, height}
 
 	gPaddle = MakePaddle(0.6, stageSize)
-	gBall = MakeBall(0.05, mgl.Vec2{width / 2, height * 3 / 4})
+	gBall = MakeBall(0.05, mgl.Vec2{width / 2, height / 2})
 	PopulateBlocks(stageSize)
 
 	VP := mgl.Ortho(0, width, 0, height, -4, 4)
@@ -144,15 +144,34 @@ func main() {
 
 		// Constant time-step updates
 		for lag >= TimePerUpdate {
+
 			gPaddle.Update(stageSize)
 			gBall.Update(stageSize)
-			//Collide ball with paddle, if hit send ball back up
-			if Collide(gBall, gPaddle) {
-				gBall.pos[1] = gPaddle.pos[1] + gPaddle.size[1]
-				if gBall.velocity[1] < 0 {
-					gBall.velocity[1] = -gBall.velocity[1]
+			//update blocks?
+
+			// Collision handling
+			var colliders []Collider
+			// ball is dynamic, others are static
+			colliders = append(colliders, gPaddle)
+			colliders = append(colliders, gBall)
+			for _, b := range gBlocks {
+				colliders = append(colliders, b)
+			}
+
+			CollideAll(colliders)
+
+			var killBlocks []int
+			for index, b := range gBlocks {
+				if !b.alive {
+					killBlocks = append(killBlocks, index)
 				}
 			}
+
+			for i := len(killBlocks) - 1; i >= 0; i-- {
+				idx := killBlocks[i]
+				gBlocks = append(gBlocks[:idx], gBlocks[idx+1:]...)
+			}
+
 			lag -= TimePerUpdate
 		}
 

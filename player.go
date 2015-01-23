@@ -80,3 +80,11 @@ func (p *Paddle) Update(stageSize mgl.Vec2) {
 func (p *Paddle) Move(dir int) {
 	p.velocity += dir
 }
+
+func (p *Paddle) Collided(c Collider) {
+
+}
+
+func (p *Paddle) ResolveCollision(pv []mgl.Vec2) {
+
+}
