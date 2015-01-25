@@ -23,7 +23,7 @@ import (
 const (
 	WindowWidth   = 800
 	WindowHeight  = 600
-	WindowTitle   = "App"
+	WindowTitle   = "Breakanoid"
 	TimePerUpdate = time.Duration(1.0 / 60.0 * float32(time.Second))
 )
 
@@ -170,6 +170,9 @@ func main() {
 			for i := len(killBlocks) - 1; i >= 0; i-- {
 				idx := killBlocks[i]
 				gBlocks = append(gBlocks[:idx], gBlocks[idx+1:]...)
+			}
+			if len(gBlocks) == 0 {
+				PopulateBlocks(stageSize)
 			}
 
 			lag -= TimePerUpdate

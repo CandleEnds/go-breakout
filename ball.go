@@ -16,8 +16,8 @@ func MakeBall(radius float32, position mgl.Vec2) *Ball {
 
 	rect := mgl.Vec2{radius * 2, radius * 2}
 	renderComp := MakeRenderRect(rect, 1, "./ball.png")
-	var speed float32 = 1 * float32(TimePerUpdate.Seconds())
-	velocity := mgl.Vec2{1, -1}.Normalize()
+	var speed float32 = 1.3 * float32(TimePerUpdate.Seconds())
+	velocity := mgl.Vec2{.6, -.8}.Normalize()
 	position[0] -= radius
 	position[1] -= radius
 	return &Ball{renderComp, position, speed, velocity, rect}
@@ -41,7 +41,6 @@ func (b *Ball) Update(stageSize mgl.Vec2) {
 	if b.pos[1] < 0 {
 		b.pos[1] = stageSize[1] / 2
 	}
-	b.velocity = b.velocity.Normalize()
 }
 
 func (b *Ball) GetPos() mgl.Vec2 {
@@ -52,7 +51,7 @@ func (b *Ball) GetSize() mgl.Vec2 {
 	return b.size.Mul(.5)
 }
 
-func (b *Ball) Collided(other Collider) {
+func (b *Ball) Collided(other Collider, overlap Rect) {
 
 }
 
@@ -81,4 +80,8 @@ func (b *Ball) ResolveCollision(pvs []mgl.Vec2) {
 	if finalProjVec[1] != 0 {
 		b.velocity[1] *= -1
 	}
+}
+
+func (b *Ball) Impulse(v mgl.Vec2) {
+	b.velocity = b.velocity.Add(v)
 }

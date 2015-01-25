@@ -47,19 +47,21 @@ func VertexifyRect(r mgl.Vec2, depth float32) []float32 {
 	hX := r[0]
 	lY := float32(0)
 	hY := r[1]
+	one := float32(.95)
+	zero := float32(.05)
 	return []float32{
 		lX, lY, depth,
-		0, 0,
+		zero, zero,
 		hX, lY, depth,
-		1, 0,
+		one, zero,
 		lX, hY, depth,
-		0, 1,
+		zero, one,
 		hX, lY, depth,
-		1, 0,
+		one, zero,
 		hX, hY, depth,
-		1, 1,
+		one, one,
 		lX, hY, depth,
-		0, 1,
+		zero, one,
 	}
 }
 

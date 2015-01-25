@@ -26,10 +26,14 @@ func (b *Block) GetSize() mgl.Vec2 {
 	return b.size
 }
 
-func (b *Block) Collided(c Collider) {
+func (b *Block) Collided(c Collider, overlap Rect) {
 	b.alive = false
 }
 
 func (b *Block) ResolveCollision(pv []mgl.Vec2) {
+
+}
+
+func (b *Block) Impulse(v mgl.Vec2) {
 
 }

@@ -7,9 +7,13 @@ import (
 type Collider interface {
 	GetSize() mgl.Vec2
 	GetPos() mgl.Vec2
-	//IsStatic() bool
-	Collided(other Collider)
+
+	// collided with something, handle special details
+	Collided(other Collider, overlap Rect)
+	// resolve overlaps, with shortest-distance-out described by projVecs
 	ResolveCollision(projVecs []mgl.Vec2)
+	// something applied an impulse acceleration, described by v
+	Impulse(v mgl.Vec2)
 }
 
 type Rect struct {
@@ -36,9 +40,9 @@ func CollideAll(colliders []Collider) {
 		for j := i + 1; j < len(colliders); j++ {
 			a := colliders[i]
 			b := colliders[j]
-			if collides, pv := Collide(a, b); collides {
-				a.Collided(b)
-				b.Collided(a)
+			if collides, pv, overlap := Collide(a, b); collides {
+				a.Collided(b, overlap)
+				b.Collided(a, overlap)
 				colls[a] = append(colls[a], pv)
 				colls[b] = append(colls[b], Negate(pv))
 			}
@@ -52,7 +56,7 @@ func CollideAll(colliders []Collider) {
 }
 
 //Returns projection vector for c1, negate to use for c2
-func Collide(c1 Collider, c2 Collider) (bool, mgl.Vec2) {
+func Collide(c1 Collider, c2 Collider) (bool, mgl.Vec2, Rect) {
 	lower1 := c1.GetPos()              //x1, y1
 	upper1 := lower1.Add(c1.GetSize()) //x2, y2
 	lower2 := c2.GetPos()              //x3, y3
@@ -95,5 +99,5 @@ func Collide(c1 Collider, c2 Collider) (bool, mgl.Vec2) {
 		projVec = mgl.Vec2{xmul * overRect.Width(), 0}
 	}
 
-	return isGood, projVec
+	return isGood, projVec, overRect
 }

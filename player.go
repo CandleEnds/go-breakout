@@ -1,7 +1,7 @@
 package main
 
 import (
-	//"fmt"
+	"fmt"
 	glfw "github.com/go-gl/glfw3"
 	mgl "github.com/go-gl/mathgl/mgl32"
 )
@@ -81,10 +81,24 @@ func (p *Paddle) Move(dir int) {
 	p.velocity += dir
 }
 
-func (p *Paddle) Collided(c Collider) {
-
+func (p *Paddle) Collided(c Collider, overlap Rect) {
+	impulse := mgl.Vec2{0, 0}
+	if overlap.Height() > overlap.Width() {
+		impulse[0] = 1
+	} else {
+		center := overlap.Center()[0]
+		padcenter := p.pos[0] + p.size[0]/2
+		norm := (center - padcenter) / p.size[0] * 2
+		impulse[0] = norm
+	}
+	fmt.Println(impulse[0])
+	c.Impulse(impulse)
 }
 
 func (p *Paddle) ResolveCollision(pv []mgl.Vec2) {
+
+}
+
+func (p *Paddle) Impulse(v mgl.Vec2) {
 
 }
