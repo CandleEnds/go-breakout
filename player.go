@@ -45,7 +45,7 @@ type Paddle struct {
 
 func MakePaddle(width float32, sceneSize mgl.Vec2) *Paddle {
 	size := mgl.Vec2{width, 0.07}
-	renderComp := MakeRenderRect(size, 1, "./greenblock.png")
+	renderComp := MakeRenderRect(size, 0, "./greenblock.png")
 	pos := mgl.Vec2{(sceneSize[0] - width) / 2, 0.05 * sceneSize[1]}
 	speed := 1 * TimePerUpdate.Seconds()
 	return &Paddle{renderComp, PaddleHandleKey, pos, float32(speed), 0, size}
@@ -69,10 +69,12 @@ func (p *Paddle) GetSize() mgl.Vec2 {
 
 func (p *Paddle) Update(stageSize mgl.Vec2) {
 	p.pos[0] += p.speed * float32(p.velocity)
-	if p.pos[0]+p.size[0] > stageSize[0] {
-		p.pos[0] = stageSize[0] - p.size[0]
+	if p.pos[0] > stageSize[0] {
+		p.pos[0] -= stageSize[0]
+		//p.pos[0] = stageSize[0] - p.size[0]
 	} else if p.pos[0] < 0 {
-		p.pos[0] = 0
+		p.pos[0] += stageSize[0]
+		//p.pos[0] = 0
 	}
 }
 

@@ -15,7 +15,7 @@ type Ball struct {
 func MakeBall(radius float32, position mgl.Vec2) *Ball {
 
 	rect := mgl.Vec2{radius * 2, radius * 2}
-	renderComp := MakeRenderRect(rect, 1, "./ball.png")
+	renderComp := MakeRenderRect(rect, 0, "./ball.png")
 	var speed float32 = 1.3 * float32(TimePerUpdate.Seconds())
 	velocity := mgl.Vec2{.6, -.8}.Normalize()
 	position[0] -= radius
@@ -26,13 +26,15 @@ func MakeBall(radius float32, position mgl.Vec2) *Ball {
 func (b *Ball) Update(stageSize mgl.Vec2) {
 	b.pos = b.pos.Add(b.velocity.Mul(b.speed))
 
-	if b.pos[0]+b.size[0] > stageSize[0] {
-		b.pos[0] = stageSize[0] - b.size[0]
-		b.velocity[0] = -b.velocity[0]
+	if b.pos[0] > stageSize[0] {
+		b.pos[0] -= stageSize[0]
+		//b.pos[0] = stageSize[0] - b.size[0]
+		//b.velocity[0] = -b.velocity[0]
 	}
 	if b.pos[0] < 0 {
-		b.pos[0] = 0
-		b.velocity[0] = -b.velocity[0]
+		b.pos[0] += stageSize[0]
+		//b.pos[0] = 0
+		//b.velocity[0] = -b.velocity[0]
 	}
 	if b.pos[1]+b.size[1] > stageSize[1] {
 		b.pos[1] = stageSize[1] - b.size[1]
@@ -41,6 +43,7 @@ func (b *Ball) Update(stageSize mgl.Vec2) {
 	if b.pos[1] < 0 {
 		b.pos[1] = stageSize[1] / 2
 	}
+	b.velocity = b.velocity.Normalize()
 }
 
 func (b *Ball) GetPos() mgl.Vec2 {

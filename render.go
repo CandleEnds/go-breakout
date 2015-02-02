@@ -8,38 +8,8 @@ import (
 	mgl "github.com/go-gl/mathgl/mgl32"
 	"image"
 	"image/png"
+	"io/ioutil"
 	"os"
-)
-
-const (
-	VertexShaderSource = `#version 120
-  
-  attribute vec3 position;
-  attribute vec2 texCoord;
-
-  uniform vec2 offset;
-  uniform mat4 VP;
-
-  varying vec2 TextureCoordOut;
-
-  void main()
-  {
-    vec4 vCoord4 = vec4(position, 1.0);
-    vec4 vOffset4 = vec4(offset, 0.0, 0.0);
-    gl_Position = VP * (vCoord4 + vOffset4);
-    TextureCoordOut = texCoord;
-  }`
-
-	FragmentShaderSource = `#version 120
-  varying vec2 TextureCoordOut;
-
-  uniform sampler2D Sampler;
-
-  void main()
-  {
-    gl_FragColor = texture2D(Sampler, TextureCoordOut);
-  }
-  `
 )
 
 func VertexifyRect(r mgl.Vec2, depth float32) []float32 {
@@ -48,7 +18,7 @@ func VertexifyRect(r mgl.Vec2, depth float32) []float32 {
 	lY := float32(0)
 	hY := r[1]
 	one := float32(.95)
-	zero := float32(.05)
+	zero := float32(.2)
 	return []float32{
 		lX, lY, depth,
 		zero, zero,
@@ -81,7 +51,9 @@ var gDefaultProgram *gl.Program = nil
 
 func GetDefaultShaderProgram() *gl.Program {
 	if gDefaultProgram == nil {
-		gDefaultProgram = makeProgram(VertexShaderSource, FragmentShaderSource)
+		vSrc := getFileAsString("vert_cylinder.glsl")
+		fSrc := getFileAsString("frag_normal.glsl")
+		gDefaultProgram = makeProgram(vSrc, fSrc)
 	}
 	return gDefaultProgram
 }
@@ -118,10 +90,26 @@ func (r RenderComponent) Draw(pos mgl.Vec2, VP mgl.Mat4) {
 	r.program.Use()
 	defer r.program.Unuse()
 
+	//offset uniform
 	r.uOffsetLoc.Uniform2fv(1, []float32{pos[0], pos[1]})
-	r.uSamplerLoc.Uniform1i(0)
+	//View-Projection uniform (VP)
 	vpp := [16]float32(VP)
 	r.uProjLoc.UniformMatrix4f(false, &vpp)
+	//cylinderRadius uniform
+	crLoc := r.program.GetUniformLocation("cylinderRadius")
+	crLoc.Uniform1f(2)
+	//cylinderHeight uniform
+	chLoc := r.program.GetUniformLocation("cylinderHeight")
+	chLoc.Uniform1f(1)
+	//levelWidth uniform
+	lwLoc := r.program.GetUniformLocation("levelWidth")
+	lwLoc.Uniform1f(gLevelWidth)
+	//levelHeight uniform
+	lhLoc := r.program.GetUniformLocation("levelHeight")
+	lhLoc.Uniform1f(2)
+
+	//texture sampler uniform
+	r.uSamplerLoc.Uniform1i(0)
 
 	gl.ActiveTexture(gl.TEXTURE0)
 	r.tex.Bind(gl.TEXTURE_2D)
@@ -156,11 +144,19 @@ func InitGL() {
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LEQUAL)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-	gl.ClearColor(0.2, 0.2, 0.2, 1.0)
+	gl.ClearColor(0.0, 0.0, 0.0, 1.0)
 }
 
 func ClearScreen() {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+}
+
+func getFileAsString(filename string) string {
+	text, err := ioutil.ReadFile(filename)
+	if err != nil {
+		panic(err)
+	}
+	return string(text)
 }
 
 func makeProgram(vertSource, fragSource string) *gl.Program {

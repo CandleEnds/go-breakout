@@ -16,6 +16,7 @@ import (
 	"fmt"
 	glfw "github.com/go-gl/glfw3"
 	mgl "github.com/go-gl/mathgl/mgl32"
+	"math"
 	"runtime"
 	"time"
 )
@@ -30,8 +31,9 @@ const (
 var gPause = false
 var gPaddle *Paddle = nil
 var gBall *Ball = nil
-var gVP *mgl.Mat4 = nil
 var gBlocks []*Block
+var gCamPos mgl.Vec3
+var gLevelWidth float32
 
 func glfwErrorCallback(err glfw.ErrorCode, desc string) {
 	fmt.Printf("%v: %v\n", err, desc)
@@ -46,19 +48,41 @@ func glfwKeyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Act
 	if action == glfw.Press && key == glfw.KeyP {
 		gPause = !gPause
 	}
+
+	if action == glfw.Press {
+		inc := float32(0.05)
+		switch key {
+		case glfw.KeyW:
+			gCamPos[1] += inc
+		case glfw.KeyA:
+			gCamPos[0] -= inc
+		case glfw.KeyS:
+			gCamPos[1] -= inc
+		case glfw.KeyD:
+			gCamPos[0] += inc
+		case glfw.KeyQ:
+			gCamPos[2] += inc
+		case glfw.KeyE:
+			gCamPos[2] -= inc
+		}
+		fmt.Println(gCamPos)
+	}
+
 }
 
 func PopulateBlocks(sceneSize mgl.Vec2) {
 	// Number of blocks
-	horizBlocks := 8
+	horizBlocks := 10
 	vertBlocks := 4
 
 	// Padding around blockfield
-	var vertStart float32 = .55 * sceneSize[1]
-	var horizStart float32 = .1 * sceneSize[0]
+	var vertStartNorm float32 = .55 // .55
+	var horizStartNorm float32 = 0  // .1
+	var vertStart float32 = vertStartNorm * sceneSize[1]
+	var horizStart float32 = horizStartNorm * sceneSize[0]
 
 	// Amount of space taken up by whole blockfield
-	horizSpace := float32(.8)
+	horizSpace := float32(1) //float32(.8)
 	vertSpace := float32(.3)
 
 	blockWidth := sceneSize[0] * horizSpace / float32(horizBlocks)
@@ -112,14 +136,17 @@ func main() {
 
 	height := float32(2)
 	width := height * float32(WindowWidth) / float32(WindowHeight)
+	gLevelWidth = width
 	stageSize := mgl.Vec2{width, height}
 
 	gPaddle = MakePaddle(0.6, stageSize)
 	gBall = MakeBall(0.05, mgl.Vec2{width / 2, height / 2})
 	PopulateBlocks(stageSize)
 
-	VP := mgl.Ortho(0, width, 0, height, -4, 4)
-	gVP = &VP
+	gCamPos = mgl.Vec3{0, 4, 6}
+	persp := mgl.Perspective(45, width/height, 0.1, 100)
+
+	//VP := mgl.Ortho(-width/2, width/2, 0, height*2, -4, 4)
 
 	previousTime := time.Now()
 	var lag time.Duration
@@ -181,12 +208,19 @@ func main() {
 		// Render once per loop
 		ClearScreen()
 
+		model := mgl.HomogRotate3DY(gPaddle.pos[0] / width * 2 * math.Pi)
+		view := mgl.LookAt(
+			gCamPos[0], gCamPos[1], gCamPos[2],
+			0, 2, 0, //gCamPos[0], gCamPos[1], gCamPos[2]+1,
+			0, 1, 0)
+		MVP := persp.Mul4(view.Mul4(model))
+
 		for _, b := range gBlocks {
-			b.renderer.Draw(b.pos, *gVP)
+			b.renderer.Draw(b.pos, MVP)
 		}
 
-		gPaddle.Draw(*gVP)
-		gBall.renderer.Draw(gBall.pos, *gVP)
+		gPaddle.Draw(MVP)
+		gBall.renderer.Draw(gBall.pos, MVP)
 
 		window.SwapBuffers()
 
