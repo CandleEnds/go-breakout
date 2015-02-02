@@ -139,7 +139,7 @@ func main() {
 	gLevelWidth = width
 	stageSize := mgl.Vec2{width, height}
 
-	gPaddle = MakePaddle(0.6, stageSize)
+	gPaddle = MakePaddle(0.4, stageSize)
 	gBall = MakeBall(0.05, mgl.Vec2{width / 2, height / 2})
 	PopulateBlocks(stageSize)
 
@@ -208,7 +208,7 @@ func main() {
 		// Render once per loop
 		ClearScreen()
 
-		model := mgl.HomogRotate3DY(gPaddle.pos[0] / width * 2 * math.Pi)
+		model := mgl.HomogRotate3DY(-gPaddle.pos[0] / gLevelWidth * 2 * math.Pi)
 		view := mgl.LookAt(
 			gCamPos[0], gCamPos[1], gCamPos[2],
 			0, 2, 0, //gCamPos[0], gCamPos[1], gCamPos[2]+1,

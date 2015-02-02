@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	//"fmt"
 	glfw "github.com/go-gl/glfw3"
 	mgl "github.com/go-gl/mathgl/mgl32"
 )
@@ -44,7 +44,7 @@ type Paddle struct {
 }
 
 func MakePaddle(width float32, sceneSize mgl.Vec2) *Paddle {
-	size := mgl.Vec2{width, 0.07}
+	size := mgl.Vec2{width, 0.15}
 	renderComp := MakeRenderRect(size, 0, "./greenblock.png")
 	pos := mgl.Vec2{(sceneSize[0] - width) / 2, 0.05 * sceneSize[1]}
 	speed := 1 * TimePerUpdate.Seconds()
@@ -84,17 +84,19 @@ func (p *Paddle) Move(dir int) {
 }
 
 func (p *Paddle) Collided(c Collider, overlap Rect) {
-	impulse := mgl.Vec2{0, 0}
-	if overlap.Height() > overlap.Width() {
-		impulse[0] = 1
-	} else {
-		center := overlap.Center()[0]
-		padcenter := p.pos[0] + p.size[0]/2
-		norm := (center - padcenter) / p.size[0] * 2
-		impulse[0] = norm
-	}
-	fmt.Println(impulse[0])
-	c.Impulse(impulse)
+	/*
+		impulse := mgl.Vec2{0, 0}
+		if overlap.Height() > overlap.Width() {
+			impulse[0] = 1
+		} else {
+			center := overlap.Center()[0]
+			padcenter := p.pos[0] + p.size[0]/2
+			norm := (center - padcenter) / p.size[0] * 2
+			impulse[0] = norm
+		}
+		fmt.Println(impulse[0])
+		c.Impulse(impulse)
+	*/
 }
 
 func (p *Paddle) ResolveCollision(pv []mgl.Vec2) {

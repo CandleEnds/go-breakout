@@ -12,38 +12,50 @@ import (
 	"os"
 )
 
-func VertexifyRect(r mgl.Vec2, depth float32) []float32 {
+//Break into 4 vertices width-wise, so 3 quads, so 6 tris
+func VertexifyRect(r mgl.Vec2, d float32) (vertices []float32, indices []uint16) {
 	lX := float32(0)
+	mX := r[0] / 3
+	nX := r[0] * 2 / 3
 	hX := r[0]
 	lY := float32(0)
+
 	hY := r[1]
-	one := float32(.95)
-	zero := float32(.2)
-	return []float32{
-		lX, lY, depth,
-		zero, zero,
-		hX, lY, depth,
-		one, zero,
-		lX, hY, depth,
-		zero, one,
-		hX, lY, depth,
-		one, zero,
-		hX, hY, depth,
-		one, one,
-		lX, hY, depth,
-		zero, one,
+	h := float32(.95)
+	l := float32(.05)
+	m := float32(1.0 / 3.0)
+	n := float32(2.0 / 3.0)
+
+	vertices = []float32{
+		lX, lY, d, l, l,
+		mX, lY, d, m, l,
+		nX, lY, d, n, l,
+		hX, lY, d, h, l,
+		lX, hY, d, l, h,
+		mX, hY, d, m, h,
+		nX, hY, d, n, h,
+		hX, hY, d, h, h,
 	}
+	indices = []uint16{
+		0, 5, 4,
+		0, 1, 5,
+		1, 6, 5,
+		1, 2, 6,
+		2, 7, 6,
+		2, 3, 7,
+	}
+	return
 }
 
 func MakeRenderRect(r mgl.Vec2, depth float32, texImg string) *RenderComponent {
-	vertices := VertexifyRect(r, depth)
-	vao, vbo := makeVertexArrayObject(vertices)
+	vertices, indices := VertexifyRect(r, depth)
+	vao, vbo, indexBuffer := makeVertexArrayObject(vertices, indices)
 	program := GetDefaultShaderProgram()
 	tex, err := createTexture(texImg)
 	if err != nil {
 		panic(err)
 	}
-	comp := MakeRenderComponent(vao, vbo, tex, program)
+	comp := MakeRenderComponent(vao, vbo, indexBuffer, len(indices), tex, program)
 	return &comp
 }
 
@@ -59,27 +71,17 @@ func GetDefaultShaderProgram() *gl.Program {
 }
 
 type RenderComponent struct {
-	vao            gl.VertexArray
-	vbo            gl.Buffer
-	program        *gl.Program
-	positionAttrib gl.AttribLocation
-	uOffsetLoc     gl.UniformLocation
-	uProjLoc       gl.UniformLocation
-	tex            gl.Texture
-	uSamplerLoc    gl.UniformLocation
-	texCoordAttrib gl.AttribLocation
+	vao         gl.VertexArray
+	vbo         gl.Buffer
+	indexBuffer gl.Buffer
+	numIndices  int
+	program     *gl.Program
+	tex         gl.Texture
 }
 
-func MakeRenderComponent(vao gl.VertexArray,
-	vbo gl.Buffer, tex gl.Texture,
-	program *gl.Program) RenderComponent {
-	positionAttrib := program.GetAttribLocation("position")
-	uOffsetLoc := program.GetUniformLocation("offset")
-	uProjLoc := program.GetUniformLocation("VP")
-	texCoordAttrib := program.GetAttribLocation("texCoord")
-	samplerLoc := program.GetUniformLocation("Sampler")
-	return RenderComponent{vao, vbo, program, positionAttrib,
-		uOffsetLoc, uProjLoc, tex, samplerLoc, texCoordAttrib}
+func MakeRenderComponent(vao gl.VertexArray, vbo gl.Buffer, indexBuffer gl.Buffer, numIndices int,
+	tex gl.Texture, program *gl.Program) RenderComponent {
+	return RenderComponent{vao, vbo, indexBuffer, numIndices, program, tex}
 }
 
 func (r RenderComponent) Draw(pos mgl.Vec2, VP mgl.Mat4) {
@@ -90,11 +92,16 @@ func (r RenderComponent) Draw(pos mgl.Vec2, VP mgl.Mat4) {
 	r.program.Use()
 	defer r.program.Unuse()
 
+	positionAttrib := r.program.GetAttribLocation("position")
+	uOffsetLoc := r.program.GetUniformLocation("offset")
+	uProjLoc := r.program.GetUniformLocation("VP")
+	texCoordAttrib := r.program.GetAttribLocation("texCoord")
+	samplerLoc := r.program.GetUniformLocation("Sampler")
 	//offset uniform
-	r.uOffsetLoc.Uniform2fv(1, []float32{pos[0], pos[1]})
+	uOffsetLoc.Uniform2fv(1, []float32{pos[0], pos[1]})
 	//View-Projection uniform (VP)
 	vpp := [16]float32(VP)
-	r.uProjLoc.UniformMatrix4f(false, &vpp)
+	uProjLoc.UniformMatrix4f(false, &vpp)
 	//cylinderRadius uniform
 	crLoc := r.program.GetUniformLocation("cylinderRadius")
 	crLoc.Uniform1f(2)
@@ -109,7 +116,7 @@ func (r RenderComponent) Draw(pos mgl.Vec2, VP mgl.Mat4) {
 	lhLoc.Uniform1f(2)
 
 	//texture sampler uniform
-	r.uSamplerLoc.Uniform1i(0)
+	samplerLoc.Uniform1i(0)
 
 	gl.ActiveTexture(gl.TEXTURE0)
 	r.tex.Bind(gl.TEXTURE_2D)
@@ -122,18 +129,22 @@ func (r RenderComponent) Draw(pos mgl.Vec2, VP mgl.Mat4) {
 	r.vbo.Bind(gl.ARRAY_BUFFER)
 	defer r.vbo.Unbind(gl.ARRAY_BUFFER)
 
+	r.indexBuffer.Bind(gl.ELEMENT_ARRAY_BUFFER)
+	defer r.indexBuffer.Unbind(gl.ELEMENT_ARRAY_BUFFER)
+
 	//5*4 == 5 floats per vert (x,y,z,u,v) by 4 bytes per float
-	r.positionAttrib.AttribPointer(3, gl.FLOAT, false, 5*4, nil)
-	r.positionAttrib.EnableArray()
-	defer r.positionAttrib.DisableArray()
+	positionAttrib.AttribPointer(3, gl.FLOAT, false, 5*4, nil)
+	positionAttrib.EnableArray()
+	defer positionAttrib.DisableArray()
 
 	//offset by x,y,z floats
-	r.texCoordAttrib.AttribPointer(2, gl.FLOAT, false, 5*4, uintptr(3*4))
-	r.texCoordAttrib.EnableArray()
-	defer r.texCoordAttrib.DisableArray()
+	texCoordAttrib.AttribPointer(2, gl.FLOAT, false, 5*4, uintptr(3*4))
+	texCoordAttrib.EnableArray()
+	defer texCoordAttrib.DisableArray()
 
 	// Actual draw call
-	gl.DrawArrays(gl.TRIANGLES, 0, 6)
+	//gl.DrawArrays(gl.TRIANGLES, 0, 6)
+	gl.DrawElements(gl.TRIANGLES, r.numIndices, gl.UNSIGNED_SHORT, nil)
 }
 
 func InitGL() {
@@ -199,10 +210,16 @@ func makeProgram(vertSource, fragSource string) *gl.Program {
 	return &program
 }
 
-func makeVertexArrayObject(vertices []float32) (gl.VertexArray, gl.Buffer) {
+func makeVertexArrayObject(vertices []float32, indices []uint16) (gl.VertexArray, gl.Buffer, gl.Buffer) {
 	vao := gl.GenVertexArray()
 	vao.Bind()
 	defer vao.Unbind()
+
+	indexBuffer := gl.GenBuffer()
+	indexBuffer.Bind(gl.ELEMENT_ARRAY_BUFFER)
+	defer indexBuffer.Unbind(gl.ELEMENT_ARRAY_BUFFER)
+
+	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(indices)*2, indices, gl.STATIC_DRAW)
 
 	vbo := gl.GenBuffer()
 	vbo.Bind(gl.ARRAY_BUFFER)
@@ -211,7 +228,7 @@ func makeVertexArrayObject(vertices []float32) (gl.VertexArray, gl.Buffer) {
 	// 4 is sizeof float32
 	gl.BufferData(gl.ARRAY_BUFFER, len(vertices)*4, vertices, gl.STATIC_DRAW)
 
-	return vao, vbo
+	return vao, vbo, indexBuffer
 }
 
 func createTexture(texFile string) (gl.Texture, error) {
