@@ -65,7 +65,6 @@ func glfwKeyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Act
 		case glfw.KeyE:
 			gCamPos[2] -= inc
 		}
-		fmt.Println(gCamPos)
 	}
 
 }
@@ -149,6 +148,9 @@ func main() {
 	//VP := mgl.Ortho(-width/2, width/2, 0, height*2, -4, 4)
 
 	previousTime := time.Now()
+
+	cameraPos := float64(stageSize[0] / 2)
+
 	var lag time.Duration
 	for !window.ShouldClose() {
 		glfw.PollEvents()
@@ -208,7 +210,35 @@ func main() {
 		// Render once per loop
 		ClearScreen()
 
-		model := mgl.HomogRotate3DY(-gPaddle.pos[0] / gLevelWidth * 2 * math.Pi)
+		// Camera logic
+		c := cameraPos
+		p := float64(gPaddle.pos[0])
+		dirLeft := true
+		dist := c - p
+		stageWidth := float64(stageSize[0])
+		if math.Abs(dist) > stageWidth/2 {
+			dist = (stageWidth - math.Abs(dist)) * Sign64(dist)
+			dirLeft = false
+		}
+		if math.Abs(dist) > stageWidth/4 {
+			moveDist := (math.Abs(dist) - stageWidth/4) * Sign64(dist)
+			if dirLeft {
+				cameraPos -= moveDist
+			} else {
+				cameraPos += moveDist
+			}
+			if cameraPos > stageWidth {
+				cameraPos -= stageWidth
+			} else if cameraPos < 0 {
+				cameraPos += stageWidth
+			}
+
+		}
+
+		//model := mgl.HomogRotate3DY(-gPaddle.pos[0] / gLevelWidth * 2 * math.Pi)
+		//"Model" transformation is the view angle, emulates camera
+		model := mgl.HomogRotate3DY(float32(cameraPos) / stageSize[0] * 2 * math.Pi)
+		//model := mgl.Ident4()
 		view := mgl.LookAt(
 			gCamPos[0], gCamPos[1], gCamPos[2],
 			0, 2, 0, //gCamPos[0], gCamPos[1], gCamPos[2]+1,

@@ -16,6 +16,14 @@ func Sign(a float32) float32 {
 	}
 }
 
+func Sign64(a float64) float64 {
+	if a < 0 {
+		return -1
+	} else {
+		return 1
+	}
+}
+
 func Abs(a float32) float32 {
 	if a < 0 {
 		return -a

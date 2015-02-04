@@ -76,6 +76,8 @@ func (p *Paddle) Update(stageSize mgl.Vec2) {
 		p.pos[0] += stageSize[0]
 		//p.pos[0] = 0
 	}
+
+	//fmt.Println(p.pos[0])
 }
 
 //negative is left, positive is right
