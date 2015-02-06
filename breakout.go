@@ -22,9 +22,9 @@ import (
 )
 
 const (
-	WindowWidth   = 800
-	WindowHeight  = 600
-	WindowTitle   = "Breakanoid"
+	WindowWidth   = 600
+	WindowHeight  = 800
+	WindowTitle   = "Cylinoid"
 	TimePerUpdate = time.Duration(1.0 / 60.0 * float32(time.Second))
 )
 
@@ -75,8 +75,8 @@ func PopulateBlocks(sceneSize mgl.Vec2) {
 	vertBlocks := 4
 
 	// Padding around blockfield
-	var vertStartNorm float32 = .55 // .55
-	var horizStartNorm float32 = 0  // .1
+	var vertStartNorm float32 = .7 // .55
+	var horizStartNorm float32 = 0 // .1
 	var vertStart float32 = vertStartNorm * sceneSize[1]
 	var horizStart float32 = horizStartNorm * sceneSize[0]
 
@@ -142,7 +142,7 @@ func main() {
 	gBall = MakeBall(0.05, mgl.Vec2{width / 2, height / 2})
 	PopulateBlocks(stageSize)
 
-	gCamPos = mgl.Vec3{0, 4, 6}
+	gCamPos = mgl.Vec3{0, 5, 11}
 	persp := mgl.Perspective(45, width/height, 0.1, 100)
 
 	//VP := mgl.Ortho(-width/2, width/2, 0, height*2, -4, 4)
@@ -212,16 +212,17 @@ func main() {
 
 		// Camera logic
 		c := cameraPos
-		p := float64(gPaddle.pos[0])
+		p := float64(gPaddle.pos[0] + gPaddle.size[0]/2)
 		dirLeft := true
 		dist := c - p
 		stageWidth := float64(stageSize[0])
+		maxDist := .2 * stageWidth
 		if math.Abs(dist) > stageWidth/2 {
 			dist = (stageWidth - math.Abs(dist)) * Sign64(dist)
 			dirLeft = false
 		}
-		if math.Abs(dist) > stageWidth/4 {
-			moveDist := (math.Abs(dist) - stageWidth/4) * Sign64(dist)
+		if math.Abs(dist) > maxDist {
+			moveDist := (math.Abs(dist) - maxDist) * Sign64(dist)
 			if dirLeft {
 				cameraPos -= moveDist
 			} else {
@@ -234,14 +235,15 @@ func main() {
 			}
 
 		}
+		//fmt.Println((cameraPos - p) / stageWidth)
 
 		//model := mgl.HomogRotate3DY(-gPaddle.pos[0] / gLevelWidth * 2 * math.Pi)
 		//"Model" transformation is the view angle, emulates camera
-		model := mgl.HomogRotate3DY(float32(cameraPos) / stageSize[0] * 2 * math.Pi)
-		//model := mgl.Ident4()
+		//model := mgl.HomogRotate3DY(-float32(cameraPos / stageWidth * 2 * math.Pi))
+		model := mgl.Ident4()
 		view := mgl.LookAt(
 			gCamPos[0], gCamPos[1], gCamPos[2],
-			0, 2, 0, //gCamPos[0], gCamPos[1], gCamPos[2]+1,
+			0, 3, 0, //gCamPos[0], gCamPos[1], gCamPos[2]+1,
 			0, 1, 0)
 		MVP := persp.Mul4(view.Mul4(model))
 

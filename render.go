@@ -47,8 +47,49 @@ func VertexifyRect(r mgl.Vec2, d float32) (vertices []float32, indices []uint16)
 	return
 }
 
+//TODO: Not working yet, maybe something to do with tex coords
+func VertexifyCube(size float32) (vertices []float32, indices []uint16) {
+	vertices = []float32{
+		0, 0, 0, 0, 0,
+		0, 0, 1, 0, 1,
+		0, 1, 0, 1, 0,
+		0, 1, 1, 1, 1,
+		1, 0, 0, 0, 0,
+		1, 0, 1, 0, 1,
+		1, 1, 0, 1, 0,
+		1, 1, 1, 1, 1,
+	}
+	indices = []uint16{
+		0, 4, 2,
+		2, 4, 6,
+		4, 5, 6,
+		6, 5, 7,
+		3, 2, 6,
+		3, 6, 7,
+		1, 0, 2,
+		1, 2, 3,
+		5, 1, 7,
+		1, 3, 7,
+		1, 5, 4,
+		0, 1, 4,
+	}
+	return
+}
+
 func MakeRenderRect(r mgl.Vec2, depth float32, texImg string) *RenderComponent {
 	vertices, indices := VertexifyRect(r, depth)
+	vao, vbo, indexBuffer := makeVertexArrayObject(vertices, indices)
+	program := GetDefaultShaderProgram()
+	tex, err := createTexture(texImg)
+	if err != nil {
+		panic(err)
+	}
+	comp := MakeRenderComponent(vao, vbo, indexBuffer, len(indices), tex, program)
+	return &comp
+}
+
+func MakeRenderCube(size float32, texImg string) *RenderComponent {
+	vertices, indices := VertexifyCube(size)
 	vao, vbo, indexBuffer := makeVertexArrayObject(vertices, indices)
 	program := GetDefaultShaderProgram()
 	tex, err := createTexture(texImg)
@@ -104,16 +145,16 @@ func (r RenderComponent) Draw(pos mgl.Vec2, VP mgl.Mat4) {
 	uProjLoc.UniformMatrix4f(false, &vpp)
 	//cylinderRadius uniform
 	crLoc := r.program.GetUniformLocation("cylinderRadius")
-	crLoc.Uniform1f(2)
+	crLoc.Uniform1f(3)
 	//cylinderHeight uniform
 	chLoc := r.program.GetUniformLocation("cylinderHeight")
-	chLoc.Uniform1f(1)
+	chLoc.Uniform1f(0.8)
 	//levelWidth uniform
 	lwLoc := r.program.GetUniformLocation("levelWidth")
 	lwLoc.Uniform1f(gLevelWidth)
 	//levelHeight uniform
 	lhLoc := r.program.GetUniformLocation("levelHeight")
-	lhLoc.Uniform1f(2)
+	lhLoc.Uniform1f(3)
 
 	//texture sampler uniform
 	samplerLoc.Uniform1i(0)
@@ -155,7 +196,7 @@ func InitGL() {
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LEQUAL)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-	gl.ClearColor(0.0, 0.0, 0.0, 1.0)
+	gl.ClearColor(0.9, 0.9, 0.9, 1.0)
 }
 
 func ClearScreen() {

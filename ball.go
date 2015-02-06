@@ -16,6 +16,7 @@ func MakeBall(radius float32, position mgl.Vec2) *Ball {
 
 	rect := mgl.Vec2{radius * 2, radius * 2}
 	renderComp := MakeRenderRect(rect, 0, "./ball.png")
+	//renderComp := MakeRenderCube(radius*2, "./ball.png")
 	var speed float32 = 1.3 * float32(TimePerUpdate.Seconds())
 	velocity := mgl.Vec2{.6, -.8}.Normalize()
 	position[0] -= radius

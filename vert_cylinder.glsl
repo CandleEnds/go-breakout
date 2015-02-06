@@ -18,6 +18,7 @@ uniform float levelWidth;
 uniform float levelHeight;
 
 varying vec2 TexCoordOut;
+varying float normPosOut;
 
 void main()
 {
@@ -35,4 +36,5 @@ void main()
 
    gl_Position = VP * vec4(xOut, yOut, zOut, 1.0);
    TexCoordOut = texCoord;
+   normPosOut = angleNorm;
 }
