@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"github.com/go-gl/gl"
 	"github.com/go-gl/glu"
-	mgl "github.com/go-gl/mathgl/mgl32"
+	mgl32 "github.com/go-gl/mathgl/mgl32"
+	mgl "github.com/go-gl/mathgl/mgl64"
 	"image"
 	"image/png"
 	"io/ioutil"
@@ -15,12 +16,12 @@ import (
 //Break into 4 vertices width-wise, so 3 quads, so 6 tris
 func VertexifyRect(r mgl.Vec2, d float32) (vertices []float32, indices []uint16) {
 	lX := float32(0)
-	mX := r[0] / 3
-	nX := r[0] * 2 / 3
-	hX := r[0]
+	mX := float32(r[0] / 3)
+	nX := float32(r[0] * 2 / 3)
+	hX := float32(r[0])
 	lY := float32(0)
 
-	hY := r[1]
+	hY := float32(r[1])
 	h := float32(.95)
 	l := float32(.05)
 	m := float32(1.0 / 3.0)
@@ -76,6 +77,10 @@ func VertexifyCube(size float32) (vertices []float32, indices []uint16) {
 	return
 }
 
+func MakeRenderCircle(normal mgl.Vec3) {
+
+}
+
 func MakeRenderRect(r mgl.Vec2, depth float32, texImg string) *RenderComponent {
 	vertices, indices := VertexifyRect(r, depth)
 	vao, vbo, indexBuffer := makeVertexArrayObject(vertices, indices)
@@ -125,7 +130,7 @@ func MakeRenderComponent(vao gl.VertexArray, vbo gl.Buffer, indexBuffer gl.Buffe
 	return RenderComponent{vao, vbo, indexBuffer, numIndices, program, tex}
 }
 
-func (r RenderComponent) Draw(pos mgl.Vec2, VP mgl.Mat4) {
+func (r RenderComponent) Draw(pos mgl.Vec2, VP mgl32.Mat4) {
 	// global shader
 	gl.Enable(gl.BLEND)
 	defer gl.Disable(gl.BLEND)
@@ -139,7 +144,7 @@ func (r RenderComponent) Draw(pos mgl.Vec2, VP mgl.Mat4) {
 	texCoordAttrib := r.program.GetAttribLocation("texCoord")
 	samplerLoc := r.program.GetUniformLocation("Sampler")
 	//offset uniform
-	uOffsetLoc.Uniform2fv(1, []float32{pos[0], pos[1]})
+	uOffsetLoc.Uniform2fv(1, []float32{float32(pos[0]), float32(pos[1])})
 	//View-Projection uniform (VP)
 	vpp := [16]float32(VP)
 	uProjLoc.UniformMatrix4f(false, &vpp)
@@ -151,7 +156,7 @@ func (r RenderComponent) Draw(pos mgl.Vec2, VP mgl.Mat4) {
 	chLoc.Uniform1f(0.8)
 	//levelWidth uniform
 	lwLoc := r.program.GetUniformLocation("levelWidth")
-	lwLoc.Uniform1f(gLevelWidth)
+	lwLoc.Uniform1f(float32(gLevelWidth))
 	//levelHeight uniform
 	lhLoc := r.program.GetUniformLocation("levelHeight")
 	lhLoc.Uniform1f(3)

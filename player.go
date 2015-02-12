@@ -3,7 +3,8 @@ package main
 import (
 	//"fmt"
 	glfw "github.com/go-gl/glfw3"
-	mgl "github.com/go-gl/mathgl/mgl32"
+	mgl32 "github.com/go-gl/mathgl/mgl32"
+	mgl "github.com/go-gl/mathgl/mgl64"
 )
 
 type KeyHandleFunc func(*Paddle, glfw.Key, int, glfw.Action, glfw.ModifierKey) bool
@@ -38,20 +39,20 @@ type Paddle struct {
 	renderer   *RenderComponent
 	controller KeyHandleFunc
 	pos        mgl.Vec2
-	speed      float32
+	speed      float64
 	velocity   int
 	size       mgl.Vec2
 }
 
-func MakePaddle(width float32, sceneSize mgl.Vec2) *Paddle {
+func MakePaddle(width float64, sceneSize mgl.Vec2) *Paddle {
 	size := mgl.Vec2{width, 0.15}
 	renderComp := MakeRenderRect(size, 0, "./greenblock.png")
 	pos := mgl.Vec2{(sceneSize[0] - width) / 2, 0.05 * sceneSize[1]}
 	speed := 1 * TimePerUpdate.Seconds()
-	return &Paddle{renderComp, PaddleHandleKey, pos, float32(speed), 0, size}
+	return &Paddle{renderComp, PaddleHandleKey, pos, float64(speed), 0, size}
 }
 
-func (p *Paddle) Draw(VP mgl.Mat4) {
+func (p *Paddle) Draw(VP mgl32.Mat4) {
 	p.renderer.Draw(p.pos, VP)
 }
 
@@ -68,7 +69,7 @@ func (p *Paddle) GetSize() mgl.Vec2 {
 }
 
 func (p *Paddle) Update(stageSize mgl.Vec2) {
-	p.pos[0] += p.speed * float32(p.velocity)
+	p.pos[0] += p.speed * float64(p.velocity)
 	if p.pos[0] > stageSize[0] {
 		p.pos[0] -= stageSize[0]
 		//p.pos[0] = stageSize[0] - p.size[0]

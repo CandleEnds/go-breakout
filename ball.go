@@ -1,23 +1,24 @@
 package main
 
 import (
-	mgl "github.com/go-gl/mathgl/mgl32"
+	mgl "github.com/go-gl/mathgl/mgl64"
+	"math"
 )
 
 type Ball struct {
 	renderer *RenderComponent
 	pos      mgl.Vec2
-	speed    float32
+	speed    float64
 	velocity mgl.Vec2
 	size     mgl.Vec2
 }
 
-func MakeBall(radius float32, position mgl.Vec2) *Ball {
+func MakeBall(radius float64, position mgl.Vec2) *Ball {
 
 	rect := mgl.Vec2{radius * 2, radius * 2}
 	renderComp := MakeRenderRect(rect, 0, "./ball.png")
 	//renderComp := MakeRenderCube(radius*2, "./ball.png")
-	var speed float32 = 1.3 * float32(TimePerUpdate.Seconds())
+	var speed float64 = 1.3 * TimePerUpdate.Seconds()
 	velocity := mgl.Vec2{.6, -.8}.Normalize()
 	position[0] -= radius
 	position[1] -= radius
@@ -59,14 +60,17 @@ func (b *Ball) Collided(other Collider, overlap Rect) {
 
 }
 
-func BetterProjVal(a, b float32) float32 {
+//compare two projection vectors for a better fit
+//use larger if same direction, else average (arbitrary decision)
+func BetterProjVal(a, b float64) float64 {
 	if Sign(a) == Sign(b) {
-		return Sign(a) * Max(Abs(a), Abs(b))
+		return Sign(a) * math.Max(math.Abs(a), math.Abs(b))
 	} else {
 		return (a + b) / 2
 	}
 }
 
+//pvs = projection vectors
 func (b *Ball) ResolveCollision(pvs []mgl.Vec2) {
 	var finalProjVec mgl.Vec2
 	for _, pv := range pvs {

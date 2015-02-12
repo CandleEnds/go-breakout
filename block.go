@@ -1,7 +1,7 @@
 package main
 
 import (
-	mgl "github.com/go-gl/mathgl/mgl32"
+	mgl "github.com/go-gl/mathgl/mgl64"
 )
 
 type Block struct {

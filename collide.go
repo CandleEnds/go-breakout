@@ -1,7 +1,8 @@
 package main
 
 import (
-	mgl "github.com/go-gl/mathgl/mgl32"
+	mgl "github.com/go-gl/mathgl/mgl64"
+	"math"
 )
 
 type Collider interface {
@@ -21,11 +22,11 @@ type Rect struct {
 	upper mgl.Vec2
 }
 
-func (r *Rect) Height() float32 {
+func (r *Rect) Height() float64 {
 	return r.upper[1] - r.lower[1]
 }
 
-func (r *Rect) Width() float32 {
+func (r *Rect) Width() float64 {
 	return r.upper[0] - r.lower[0]
 }
 
@@ -63,12 +64,12 @@ func Collide(c1 Collider, c2 Collider) (bool, mgl.Vec2, Rect) {
 	upper2 := lower2.Add(c2.GetSize()) //x4, y4
 
 	lowerOverlap := mgl.Vec2{} //x5, y5
-	lowerOverlap[0] = Max(lower1[0], lower2[0])
-	lowerOverlap[1] = Max(lower1[1], lower2[1])
+	lowerOverlap[0] = math.Max(lower1[0], lower2[0])
+	lowerOverlap[1] = math.Max(lower1[1], lower2[1])
 
 	upperOverlap := mgl.Vec2{}
-	upperOverlap[0] = Min(upper1[0], upper2[0])
-	upperOverlap[1] = Min(upper1[1], upper2[1])
+	upperOverlap[0] = math.Min(upper1[0], upper2[0])
+	upperOverlap[1] = math.Min(upper1[1], upper2[1])
 
 	isGood := (lowerOverlap[0] < upperOverlap[0]) && (lowerOverlap[1] < upperOverlap[1])
 
@@ -77,8 +78,8 @@ func Collide(c1 Collider, c2 Collider) (bool, mgl.Vec2, Rect) {
 	center1 := MidPt(lower1, upper1)
 	center2 := MidPt(lower2, upper2)
 
-	var ymul float32
-	var xmul float32
+	var ymul float64
+	var xmul float64
 
 	if center1[1] > center2[1] {
 		ymul = 1

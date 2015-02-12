@@ -15,7 +15,8 @@ package main
 import (
 	"fmt"
 	glfw "github.com/go-gl/glfw3"
-	mgl "github.com/go-gl/mathgl/mgl32"
+	mgl32 "github.com/go-gl/mathgl/mgl32"
+	mgl "github.com/go-gl/mathgl/mgl64"
 	"math"
 	"runtime"
 	"time"
@@ -25,7 +26,7 @@ const (
 	WindowWidth   = 600
 	WindowHeight  = 800
 	WindowTitle   = "Cylinoid"
-	TimePerUpdate = time.Duration(1.0 / 60.0 * float32(time.Second))
+	TimePerUpdate = time.Duration(time.Second / 60.0)
 )
 
 var gPause = false
@@ -33,7 +34,7 @@ var gPaddle *Paddle = nil
 var gBall *Ball = nil
 var gBlocks []*Block
 var gCamPos mgl.Vec3
-var gLevelWidth float32
+var gLevelWidth float64
 
 func glfwErrorCallback(err glfw.ErrorCode, desc string) {
 	fmt.Printf("%v: %v\n", err, desc)
@@ -50,7 +51,7 @@ func glfwKeyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Act
 	}
 
 	if action == glfw.Press {
-		inc := float32(0.05)
+		inc := float64(0.05)
 		switch key {
 		case glfw.KeyW:
 			gCamPos[1] += inc
@@ -75,17 +76,17 @@ func PopulateBlocks(sceneSize mgl.Vec2) {
 	vertBlocks := 4
 
 	// Padding around blockfield
-	var vertStartNorm float32 = .7 // .55
-	var horizStartNorm float32 = 0 // .1
-	var vertStart float32 = vertStartNorm * sceneSize[1]
-	var horizStart float32 = horizStartNorm * sceneSize[0]
+	var vertStartNorm float64 = .7 // .55
+	var horizStartNorm float64 = 0 // .1
+	var vertStart float64 = vertStartNorm * sceneSize[1]
+	var horizStart float64 = horizStartNorm * sceneSize[0]
 
 	// Amount of space taken up by whole blockfield
-	horizSpace := float32(1) //float32(.8)
-	vertSpace := float32(.3)
+	horizSpace := float64(1) //float64(.8)
+	vertSpace := float64(.3)
 
-	blockWidth := sceneSize[0] * horizSpace / float32(horizBlocks)
-	blockHeight := sceneSize[1] * vertSpace / float32(vertBlocks)
+	blockWidth := sceneSize[0] * horizSpace / float64(horizBlocks)
+	blockHeight := sceneSize[1] * vertSpace / float64(vertBlocks)
 	blockSize := mgl.Vec2{blockWidth, blockHeight}
 
 	gBlocks = make([]*Block, horizBlocks*vertBlocks)
@@ -93,10 +94,10 @@ func PopulateBlocks(sceneSize mgl.Vec2) {
 	color := mgl.Vec3{0, 1, 0}
 
 	for r := 0; r < vertBlocks; r++ {
-		posy := float32(r)*blockHeight + vertStart
+		posy := float64(r)*blockHeight + vertStart
 
 		for c := 0; c < horizBlocks; c++ {
-			posx := float32(c)*blockWidth + horizStart
+			posx := float64(c)*blockWidth + horizStart
 			gBlocks[r*horizBlocks+c] = MakeBlock(blockSize, mgl.Vec2{posx, posy}, color)
 		}
 	}
@@ -133,8 +134,8 @@ func main() {
 
 	InitGL()
 
-	height := float32(2)
-	width := height * float32(WindowWidth) / float32(WindowHeight)
+	height := float64(2)
+	width := height * float64(WindowWidth) / float64(WindowHeight)
 	gLevelWidth = width
 	stageSize := mgl.Vec2{width, height}
 
@@ -143,7 +144,7 @@ func main() {
 	PopulateBlocks(stageSize)
 
 	gCamPos = mgl.Vec3{0, 5, 11}
-	persp := mgl.Perspective(45, width/height, 0.1, 100)
+	persp := mgl32.Perspective(45, float32(width/height), 0.1, 100)
 
 	//VP := mgl.Ortho(-width/2, width/2, 0, height*2, -4, 4)
 
@@ -218,11 +219,11 @@ func main() {
 		stageWidth := float64(stageSize[0])
 		maxDist := .2 * stageWidth
 		if math.Abs(dist) > stageWidth/2 {
-			dist = (stageWidth - math.Abs(dist)) * Sign64(dist)
+			dist = (stageWidth - math.Abs(dist)) * Sign(dist)
 			dirLeft = false
 		}
 		if math.Abs(dist) > maxDist {
-			moveDist := (math.Abs(dist) - maxDist) * Sign64(dist)
+			moveDist := (math.Abs(dist) - maxDist) * Sign(dist)
 			if dirLeft {
 				cameraPos -= moveDist
 			} else {
@@ -239,10 +240,10 @@ func main() {
 
 		//model := mgl.HomogRotate3DY(-gPaddle.pos[0] / gLevelWidth * 2 * math.Pi)
 		//"Model" transformation is the view angle, emulates camera
-		//model := mgl.HomogRotate3DY(-float32(cameraPos / stageWidth * 2 * math.Pi))
-		model := mgl.Ident4()
-		view := mgl.LookAt(
-			gCamPos[0], gCamPos[1], gCamPos[2],
+		//model := mgl.HomogRotate3DY(-float64(cameraPos / stageWidth * 2 * math.Pi))
+		model := mgl32.Ident4()
+		view := mgl32.LookAt(
+			float32(gCamPos[0]), float32(gCamPos[1]), float32(gCamPos[2]),
 			0, 3, 0, //gCamPos[0], gCamPos[1], gCamPos[2]+1,
 			0, 1, 0)
 		MVP := persp.Mul4(view.Mul4(model))
