@@ -10,6 +10,7 @@ import (
 	"image"
 	"image/png"
 	"io/ioutil"
+	"math"
 	"os"
 )
 
@@ -77,8 +78,27 @@ func VertexifyCube(size float32) (vertices []float32, indices []uint16) {
 	return
 }
 
-func MakeRenderCircle(normal mgl.Vec3) {
-
+//make a unit circle centered at the origin with normal Z
+func MakeRenderCircle(resolution uint16) (vertices []float32, indices []uint16) {
+	vertices = make([]float32, resolution)
+	indices = make([]uint16, (resolution-2)*3)
+	increment := 2 * math.Pi / float64(resolution)
+	for angle := float64(0); angle < float64(2)*math.Pi; angle += increment {
+		x := float32(math.Cos(angle))
+		y := float32(math.Sin(angle))
+		vertices = append(vertices, x)
+		vertices = append(vertices, y)
+		vertices = append(vertices, 0)
+		//tex coords, translate into 0->1 instead of -1->1
+		vertices = append(vertices, (x+1)/2)
+		vertices = append(vertices, (y+1)/2)
+	}
+	for idx := uint16(1); idx < resolution-2; idx++ {
+		indices = append(indices, 0)
+		indices = append(indices, idx)
+		indices = append(indices, idx+1)
+	}
+	return
 }
 
 func MakeRenderRect(r mgl.Vec2, depth float32, texImg string) *RenderComponent {
