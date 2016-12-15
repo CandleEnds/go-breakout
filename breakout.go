@@ -14,7 +14,7 @@ package main
 
 import (
 	"fmt"
-	glfw "github.com/go-gl/glfw3"
+	glfw "github.com/go-gl/glfw3/v3.2/glfw"
 	mgl32 "github.com/go-gl/mathgl/mgl32"
 	mgl "github.com/go-gl/mathgl/mgl64"
 	"math"
@@ -109,17 +109,19 @@ func main() {
 	runtime.LockOSThread()
 
 	// Initialize glfw
-	glfw.SetErrorCallback(glfwErrorCallback)
+	// glfw.SetErrorCallback(glfwErrorCallback)
 
-	if !glfw.Init() {
+	if glfw.Init() != nil {
 		panic("Failed to initialize GLFW")
 	}
 	defer glfw.Terminate()
 
-	// Open glfw window, with GL2.1 context
-	glfw.WindowHint(glfw.ContextVersionMajor, 2)
+	// Open glfw window, with GL4.1 context
+	glfw.WindowHint(glfw.ContextVersionMajor, 4)
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)
 	glfw.WindowHint(glfw.Resizable, 0)
+	glfw.WindowHint(glfw.OpenGLForwardCompatible, 1)
+	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
 
 	window, err := glfw.CreateWindow(WindowWidth, WindowHeight, WindowTitle, nil, nil)
 	if err != nil {

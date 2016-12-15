@@ -2,7 +2,7 @@ package main
 
 import (
 	//"fmt"
-	glfw "github.com/go-gl/glfw3"
+	glfw "github.com/go-gl/glfw3/v3.2/glfw"
 	mgl32 "github.com/go-gl/mathgl/mgl32"
 	mgl "github.com/go-gl/mathgl/mgl64"
 )
